@@ -1,0 +1,33 @@
+# Build outputs
+bin/
+obj/
+dist/
+
+# Visual Studio
+.vs/
+.vscode/
+*.user
+*.suo
+*.cache
+*.docstates
+
+# Distribution packages
+*.zip
+KomicViewer-Release/
+KomicViewer-Distribution/
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# User settings
+settings.json
+
+# Kiro IDE
+.kiro/
