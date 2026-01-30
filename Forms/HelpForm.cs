@@ -75,7 +75,7 @@ public partial class HelpForm : Form
     private static string GetApplicationVersion()
     {
         var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-        return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.0.3";
+        return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "1.1";
     }
 
     private static string GetHelpText()

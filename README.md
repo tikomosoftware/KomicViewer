@@ -1,8 +1,8 @@
-﻿# Komic Viewer v1.0.3
+﻿# Komic Viewer v1.1
 
 📖 軽量で使いやすいコミック・マンガビューアー
 
-![Komic Viewer](https://img.shields.io/badge/Platform-Windows-blue) ![.NET](https://img.shields.io/badge/.NET-9.0-purple) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.0.3-orange)
+![Komic Viewer](https://img.shields.io/badge/Platform-Windows-blue) ![.NET](https://img.shields.io/badge/.NET-9.0-purple) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.1-orange)
 
 ## 🎯 特徴
 
@@ -164,6 +164,25 @@
 MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照
 
 ## 📋 更新履歴
+
+### v1.1 (2026-01-30)
+**UI/UXの大幅な刷新と操作性の向上**
+- **モダンツールバーの実装**:
+  - カスタムレンダラーによるフラットで洗練されたデザイン
+  - ボタンのホバーエフェクト（角丸ハイライト）の導入
+  - セパレーターのデザイン最適化
+- **プレミアムカスタムスライダー**:
+  - Windows標準スクロールバーを完全にリプレース
+  - ツールバーに溶け込む細身のトラックとカスタムツマミ
+  - マウスオーバーでのインタラクティブなフィードバック
+- **レイアウトの再構成**:
+  - 設定ボタン（テーマ、最前面、言語、ヘルプ）を右寄せに配置
+  - 主要なナビゲーション領域と設定領域を直感的に分離
+- **フルスクリーン体験の改善**:
+  - 復帰時の描画順序を修正し、ツールバーが画像に被る問題を解決
+- **バグ修正と安定化**:
+  - 見開きモード時のスライダーのスナップバグを修正（1ページずらしの維持が可能に）
+  - 多言語切り替え時の表示崩れやボタン配置の不具合を修正
 
 ### v1.0.3 (2026-01-13)
 **プラットフォーム・安定性の向上**

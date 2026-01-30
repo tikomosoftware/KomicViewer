@@ -885,6 +885,7 @@ public partial class MainForm : Form
             {
                 // 通常モードではDockを使用
                 _toolbar.Dock = DockStyle.Top;
+                _toolbar.SendToBack(); // ドッキング順序を正しくするために背面に移動（背面に送ると最初にドッキングされる）
                 _toolbar.Visible = true;
                 _isToolbarVisible = true;
             }
