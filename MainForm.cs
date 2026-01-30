@@ -2,6 +2,8 @@ using KomicViewer.Controls;
 using KomicViewer.Services;
 using KomicViewer.Forms;
 using System.Runtime.InteropServices;
+using System.Drawing.Drawing2D;
+using System.ComponentModel;
 
 namespace KomicViewer;
 
@@ -31,7 +33,7 @@ public partial class MainForm : Form
     private ViewMode? _desiredViewMode;
     
     // ページスライダー関連
-    private HScrollBar? _pageSlider;
+    private ModernProgressSlider? _pageSlider;
 
     public MainForm()
     {
@@ -121,8 +123,8 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            ShowMessageBoxSafely($"MainForm初期化エラー:\n{ex.Message}\n\nスタックトレース:\n{ex.StackTrace}", 
-                "初期化エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            ShowMessageBoxSafely($"{LanguageManager.GetString("Error")}:\n{ex.Message}\n\n{ex.StackTrace}", 
+                LanguageManager.GetString("Error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
             throw;
         }
     }
@@ -142,18 +144,21 @@ public partial class MainForm : Form
     {
         _toolbar = new ToolStrip
         {
-            BackColor = Color.FromArgb(50, 50, 50),
-            ForeColor = Color.White,
             GripStyle = ToolStripGripStyle.Hidden,
-            Padding = new Padding(5, 2, 5, 2)
+            Padding = new Padding(10, 5, 10, 5),
+            AutoSize = true,
+            RenderMode = ToolStripRenderMode.Professional,
+            Renderer = new ModernToolStripRenderer(_isDarkMode)
         };
 
         _toolbar.Items.Add(new ToolStripSeparator());
 
         // Open file button with context menu
-        var openBtn = new ToolStripButton("📁 ファイル")
+        var openBtn = new ToolStripButton(LanguageManager.GetString("MenuFile"))
         {
-            ForeColor = Color.White
+            ForeColor = Color.White,
+            Image = IconService.GetIcon(IconService.IconType.File, 20, Color.White),
+            Margin = new Padding(5, 0, 5, 0)
         };
         
         // Create context menu for file operations
@@ -163,11 +168,11 @@ public partial class MainForm : Form
             ForeColor = _isDarkMode ? Color.White : Color.Black,
             ShowImageMargin = false,
             ShowCheckMargin = false,
-            Renderer = new DarkMenuRenderer(_isDarkMode)
+            Renderer = new ModernToolStripRenderer(_isDarkMode)
         };
 
         // Open file item
-        var openItem = new ToolStripMenuItem("開く...")
+        var openItem = new ToolStripMenuItem(LanguageManager.GetString("MenuOpen"))
         {
             ForeColor = _isDarkMode ? Color.White : Color.Black,
             BackColor = _isDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(240, 240, 240),
@@ -177,7 +182,7 @@ public partial class MainForm : Form
         _fileContextMenu.Items.Add(openItem);
 
         // Close file item
-        var closeItem = new ToolStripMenuItem("閉じる")
+        var closeItem = new ToolStripMenuItem(LanguageManager.GetString("MenuClose"))
         {
             ForeColor = _isDarkMode ? Color.White : Color.Black,
             BackColor = _isDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(240, 240, 240),
@@ -189,7 +194,7 @@ public partial class MainForm : Form
         _fileContextMenu.Items.Add(new ToolStripSeparator { BackColor = _isDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(240, 240, 240) });
 
         // Exit item
-        var exitItem = new ToolStripMenuItem("終了")
+        var exitItem = new ToolStripMenuItem(LanguageManager.GetString("MenuExit"))
         {
             ForeColor = _isDarkMode ? Color.White : Color.Black,
             BackColor = _isDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(240, 240, 240),
@@ -222,7 +227,8 @@ public partial class MainForm : Form
 
         _pageLabel = new ToolStripLabel("0 / 0")
         {
-            ForeColor = Color.LightGray
+            ForeColor = Color.LightGray,
+            Margin = new Padding(5, 0, 5, 0)
         };
 
         _nextBtn = new ToolStripButton()
@@ -239,7 +245,8 @@ public partial class MainForm : Form
         {
             ForeColor = Color.White,
             ToolTipText = "1ページ戻す（見開き調整用）",
-            Visible = false
+            Visible = false,
+            Margin = new Padding(3, 0, 3, 0)
         };
         _adjustPrevBtn.Click += (_, _) => 
         {
@@ -255,7 +262,8 @@ public partial class MainForm : Form
         {
             ForeColor = Color.White,
             ToolTipText = "1ページ送る（見開き調整用）",
-            Visible = false
+            Visible = false,
+            Margin = new Padding(3, 0, 3, 0)
         };
         _adjustNextBtn.Click += (_, _) => 
         {
@@ -278,11 +286,13 @@ public partial class MainForm : Form
             ForeColor = Color.White,
             CheckOnClick = true,
             Checked = _viewerPanel.ViewMode == ViewMode.DualPage,
-            ToolTipText = "単ページ / 見開き を切り替え"
+            ToolTipText = LanguageManager.GetString("TooltipToggleView"),
+            Margin = new Padding(5, 0, 5, 0)
         };
 
-        // Initialize text clearly
-        viewToggleBtn.Text = _viewerPanel.ViewMode == ViewMode.DualPage ? "見開き" : "単ページ";
+        // 初期テキストとアイコンを設定
+        viewToggleBtn.Text = _viewerPanel.ViewMode == ViewMode.DualPage ? LanguageManager.GetString("ViewDual") : LanguageManager.GetString("ViewSingle");
+        viewToggleBtn.Image = IconService.GetIcon(_viewerPanel.ViewMode == ViewMode.DualPage ? IconService.IconType.ViewDual : IconService.IconType.ViewSingle, 20, Color.White);
 
         viewToggleBtn.Click += (_, _) =>
         {
@@ -296,7 +306,8 @@ public partial class MainForm : Form
                 _desiredViewMode = ViewMode.SinglePage;
                 SetViewMode(ViewMode.SinglePage);
             }
-            
+            viewToggleBtn.Text = _viewerPanel.ViewMode == ViewMode.DualPage ? LanguageManager.GetString("ViewDual") : LanguageManager.GetString("ViewSingle");
+
             // 設定を保存
             SaveSettings();
         };
@@ -307,9 +318,12 @@ public partial class MainForm : Form
         _toolbar.Items.Add(new ToolStripSeparator());
 
         // Fullscreen button
-        _fullscreenBtn = new ToolStripButton("⛶ フルスクリーン")
+        _fullscreenBtn = new ToolStripButton(LanguageManager.GetString("Fullscreen"))
         {
-            ForeColor = Color.White
+            ForeColor = Color.White,
+            ToolTipText = LanguageManager.GetString("TooltipFullScreen"),
+            Image = IconService.GetIcon(IconService.IconType.Fullscreen, 20, Color.White),
+            Margin = new Padding(5, 0, 5, 0)
         };
         _fullscreenBtn.Click += (_, _) => ToggleFullScreen();
         _toolbar.Items.Add(_fullscreenBtn);
@@ -320,16 +334,17 @@ public partial class MainForm : Form
             ForeColor = Color.White,
             CheckOnClick = true,
             Checked = _isRightToLeft, // 設定から読み込んだ値を使用
-            ToolTipText = "表示方向: 右開き / 左開き を切り替え"
+            ToolTipText = LanguageManager.GetString("TooltipDirection"),
+            Margin = new Padding(5, 0, 5, 0)
         };
         
         // 初期テキストを設定から読み込んだ値に基づいて設定
-        _directionBtn.Text = _isRightToLeft ? "右開き" : "左開き";
+        _directionBtn.Text = _isRightToLeft ? LanguageManager.GetString("RightToLeft") : LanguageManager.GetString("LeftToRight");
         
         _directionBtn.Click += (_, _) =>
         {
             _isRightToLeft = _directionBtn.Checked;
-            _directionBtn.Text = _isRightToLeft ? "右開き" : "左開き";
+            _directionBtn.Text = _isRightToLeft ? LanguageManager.GetString("RightToLeft") : LanguageManager.GetString("LeftToRight");
             
             // ViewerPanelに読み方向を通知
             _viewerPanel.IsRightToLeft = _isRightToLeft;
@@ -351,46 +366,98 @@ public partial class MainForm : Form
         };
         _toolbar.Items.Add(_directionBtn);
 
+
         _toolbar.Items.Add(new ToolStripSeparator());
 
-        // Help button
-        var helpBtn = new ToolStripButton("❓ 使い方")
+        // ページナビゲーション用スクロールバーをツールバーに追加
+        CreatePageScrollBar();
+
+        _toolbar.Items.Add(new ToolStripSeparator());
+
+        // Right-aligned items (Add in reverse order because Alignment.Right stacks from right to left)
+        // Final desired visual order: [Slider] ... [Theme] | [TopMost] | [Language] | [Help]
+
+        // 1. Help button (Rightmost)
+        var helpBtn = new ToolStripButton(LanguageManager.GetString("Help"))
         {
+            Alignment = ToolStripItemAlignment.Right,
             ForeColor = Color.White,
-            ToolTipText = "使い方を表示"
+            ToolTipText = LanguageManager.GetString("TooltipHelp"),
+            Image = IconService.GetIcon(IconService.IconType.Help, 20, Color.White),
+            Margin = new Padding(10, 0, 10, 0)
         };
         helpBtn.Click += (_, _) => ShowHelp();
         _toolbar.Items.Add(helpBtn);
 
-        _toolbar.Items.Add(new ToolStripSeparator());
+        // 2. Separator
+        _toolbar.Items.Add(new ToolStripSeparator { Alignment = ToolStripItemAlignment.Right });
 
-        // Theme toggle button
-        var themeBtn = new ToolStripButton(_isDarkMode ? "🌙 ダーク" : "☀️ ライト")
+        // 3. Language button
+        var langBtn = new ToolStripButton(LanguageManager.GetString("Language"))
         {
+            Alignment = ToolStripItemAlignment.Right,
             ForeColor = Color.White,
-            CheckOnClick = true,
-            Checked = _isDarkMode,
-            ToolTipText = "ライト/ダークテーマ切り替え"
+            ToolTipText = "Switch Language (Japanese / English)",
+            Image = IconService.GetIcon(IconService.IconType.Language, 20, Color.White),
+            Margin = new Padding(5, 0, 5, 0)
         };
-        themeBtn.Click += (_, _) => ToggleTheme(themeBtn);
-        _toolbar.Items.Add(themeBtn);
-
-        _toolbar.Items.Add(new ToolStripSeparator());
-
-        // 最前面表示ボタン
-        _topMostBtn = new ToolStripButton(_isTopMost ? "📌 最前面" : "📌 通常")
+        var langMenu = new ContextMenuStrip
         {
+            BackColor = _isDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(240, 240, 240),
+            ForeColor = _isDarkMode ? Color.White : Color.Black,
+            ShowImageMargin = false,
+            Renderer = new ModernToolStripRenderer(_isDarkMode)
+        };
+        var jaItem = new ToolStripMenuItem(LanguageManager.GetString("Japanese")) { Tag = Language.Japanese };
+        var enItem = new ToolStripMenuItem(LanguageManager.GetString("English")) { Tag = Language.English };
+        jaItem.Click += (s, e) => ChangeLanguage(Language.Japanese);
+        enItem.Click += (s, e) => ChangeLanguage(Language.English);
+        langMenu.Items.Add(jaItem);
+        langMenu.Items.Add(enItem);
+        langBtn.Click += (s, e) => langMenu.Show(Cursor.Position);
+        _toolbar.Items.Add(langBtn);
+
+        // 4. Separator
+        _toolbar.Items.Add(new ToolStripSeparator { Alignment = ToolStripItemAlignment.Right });
+
+        // 5. TopMost button
+        _topMostBtn = new ToolStripButton(LanguageManager.GetString(_isTopMost ? "TopMost" : "NormalWindow"))
+        {
+            Alignment = ToolStripItemAlignment.Right,
             ForeColor = Color.White,
             CheckOnClick = true,
             Checked = _isTopMost,
-            ToolTipText = "ウィンドウを最前面に表示"
+            ToolTipText = LanguageManager.GetString("TooltipTopMost"),
+            Image = IconService.GetIcon(_isTopMost ? IconService.IconType.TopMostOn : IconService.IconType.TopMostOff, 20, Color.White),
+            Margin = new Padding(5, 0, 5, 0)
         };
-        _topMostBtn.Click += (_, _) => ToggleTopMost(_topMostBtn);
+        _topMostBtn.Click += (_, _) => 
+        {
+            _isTopMost = _topMostBtn.Checked;
+            TopMost = _isTopMost;
+            _topMostBtn.Text = LanguageManager.GetString(_isTopMost ? "TopMost" : "NormalWindow");
+            _topMostBtn.Image?.Dispose();
+            _topMostBtn.Image = IconService.GetIcon(_isTopMost ? IconService.IconType.TopMostOn : IconService.IconType.TopMostOff, 20, _isDarkMode ? Color.White : Color.Black);
+            SaveSettings();
+        };
         _toolbar.Items.Add(_topMostBtn);
 
-        // ページナビゲーション用スクロールバーをツールバーに追加
-        _toolbar.Items.Add(new ToolStripSeparator());
-        CreatePageScrollBar();
+        // 6. Separator
+        _toolbar.Items.Add(new ToolStripSeparator { Alignment = ToolStripItemAlignment.Right });
+
+        // 7. Theme toggle button
+        var themeBtn = new ToolStripButton(LanguageManager.GetString(_isDarkMode ? "ThemeDark" : "ThemeLight"))
+        {
+            Alignment = ToolStripItemAlignment.Right,
+            ForeColor = Color.White,
+            CheckOnClick = true,
+            Checked = _isDarkMode,
+            ToolTipText = LanguageManager.GetString("TooltipTheme"),
+            Image = IconService.GetIcon(_isDarkMode ? IconService.IconType.ThemeDark : IconService.IconType.ThemeLight, 20, Color.White),
+            Margin = new Padding(5, 0, 5, 0)
+        };
+        themeBtn.Click += (_, _) => ToggleTheme(themeBtn);
+        _toolbar.Items.Add(themeBtn);
 
         // ツールバーを上部にドック（通常モード）
         _toolbar.Dock = DockStyle.Top;
@@ -402,61 +469,47 @@ public partial class MainForm : Form
 
     private void CreatePageScrollBar()
     {
-        // 水平スクロールバーを作成
-        _pageSlider = new HScrollBar
+        // カスタムスライダーを作成
+        _pageSlider = new ModernProgressSlider
         {
             Minimum = 0,
-            Maximum = 100,
+            Maximum = _archiveReader.IsLoaded ? _archiveReader.PageCount - 1 : 100,
             Value = 0,
-            Height = 20,
+            Height = 24,
             Width = 200, // 固定幅
-            SmallChange = 1,
-            LargeChange = 10
+            IsDarkMode = _isDarkMode
         };
-        _pageSlider.Scroll += PageSlider_Scroll;
+        _pageSlider.ValueChanged += (s, e) => {
+            if (_archiveReader.IsLoaded)
+            {
+                int targetPage = _pageSlider.Value;
+                targetPage = Math.Clamp(targetPage, 0, _archiveReader.PageCount - 1);
+                
+                if (targetPage != _currentPage)
+                {
+                    _currentPage = targetPage;
+                    UpdateDisplay();
+                }
+            }
+        };
 
-        // スクロールバーをToolStripControlHostでラップ
+        // スライダーをToolStripControlHostでラップ
         var scrollBarHost = new ToolStripControlHost(_pageSlider)
         {
             AutoSize = false,
-            Size = new Size(200, 25)
+            Size = new Size(200, 25),
+            Margin = new Padding(10, 0, 10, 0)
         };
 
-        // ツールバーに追加（ラベルは削除）
         _toolbar?.Items.Add(scrollBarHost);
     }
 
-    private void PageSlider_Scroll(object? sender, ScrollEventArgs e)
-    {
-        if (_pageSlider != null && _archiveReader.IsLoaded)
-        {
-            // スクロールバーの場合、実際の最大値は Maximum - LargeChange + 1
-            var actualMaximum = _archiveReader.PageCount - 1;
-            var targetPage = (int)Math.Round((double)_pageSlider.Value / actualMaximum * actualMaximum);
-            
-            // Adjust for dual page mode
-            if (_viewerPanel.ViewMode == ViewMode.DualPage && targetPage > 0)
-            {
-                targetPage = (targetPage / 2) * 2; // 偶数に調整
-            }
-            
-            targetPage = Math.Clamp(targetPage, 0, _archiveReader.PageCount - 1);
-            
-            // Update page if changed
-            if (targetPage != _currentPage)
-            {
-                _currentPage = targetPage;
-                UpdateDisplay();
-            }
-        }
-    }
 
     private void UpdateSlider()
     {
         if (_pageSlider != null && _archiveReader.IsLoaded)
         {
-            // スクロールバーの場合、Maximum = 実際の最大値 + LargeChange - 1
-            _pageSlider.Maximum = _archiveReader.PageCount - 1 + _pageSlider.LargeChange - 1;
+            _pageSlider.Maximum = _archiveReader.PageCount - 1;
             _pageSlider.Value = Math.Clamp(_currentPage, 0, _archiveReader.PageCount - 1);
         }
     }
@@ -615,8 +668,8 @@ public partial class MainForm : Form
     {
         using var dialog = new OpenFileDialog
         {
-            Title = "コミックファイルを開く",
-            Filter = "アーカイブファイル|*.zip;*.rar;*.cbz;*.cbr|ZIPファイル|*.zip;*.cbz|RARファイル|*.rar;*.cbr|すべてのファイル|*.*"
+            Title = LanguageManager.GetString("OpenFileDialogTitle"),
+            Filter = LanguageManager.GetString("ArchiveFilter")
         };
 
         if (ShowCommonDialogSafely(dialog) == DialogResult.OK)
@@ -639,12 +692,12 @@ public partial class MainForm : Form
             }
             else
             {
-                ShowMessageBoxSafely("画像が見つかりませんでした。", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ShowMessageBoxSafely(LanguageManager.GetString("NoImagesFound"), LanguageManager.GetString("Error"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
         catch (Exception ex)
         {
-            ShowMessageBoxSafely($"ファイルを開けませんでした:\n{ex.Message}", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            ShowMessageBoxSafely($"{LanguageManager.GetString("CouldNotOpenFile")}\n{ex.Message}", LanguageManager.GetString("Error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally
         {
@@ -812,8 +865,12 @@ public partial class MainForm : Form
     {
         if (_viewToggleBtn != null)
         {
-            _viewToggleBtn.Checked = _viewerPanel.ViewMode == ViewMode.DualPage;
-            _viewToggleBtn.Text = _viewerPanel.ViewMode == ViewMode.DualPage ? "見開き" : "単ページ";
+            var isDual = _viewerPanel.ViewMode == ViewMode.DualPage;
+            _viewToggleBtn.Checked = isDual;
+            _viewToggleBtn.Text = isDual ? LanguageManager.GetString("ViewDual") : LanguageManager.GetString("ViewSingle");
+            
+            _viewToggleBtn.Image?.Dispose();
+            _viewToggleBtn.Image = IconService.GetIcon(isDual ? IconService.IconType.ViewDual : IconService.IconType.ViewSingle, 20, _isDarkMode ? Color.White : Color.Black);
         }
     }
 
@@ -834,8 +891,9 @@ public partial class MainForm : Form
             // フルスクリーンボタンのテキストを元に戻す
             if (_fullscreenBtn != null)
             {
-                _fullscreenBtn.Text = "⛶ フルスクリーン";
-                _fullscreenBtn.ToolTipText = "フルスクリーン表示";
+                _fullscreenBtn.Text = LanguageManager.GetString("Fullscreen");
+                _fullscreenBtn.ToolTipText = LanguageManager.GetString("TooltipFullScreen");
+                _fullscreenBtn.Image = IconService.GetIcon(IconService.IconType.Fullscreen, 20, _isDarkMode ? Color.White : Color.Black);
             }
             _toolbarHideTimer?.Stop();
         }
@@ -860,8 +918,9 @@ public partial class MainForm : Form
             // フルスクリーンボタンのテキストを変更
             if (_fullscreenBtn != null)
             {
-                _fullscreenBtn.Text = "🗗 元のサイズ";
-                _fullscreenBtn.ToolTipText = "フルスクリーンを終了";
+                _fullscreenBtn.Text = LanguageManager.GetString("NormalSize");
+                _fullscreenBtn.ToolTipText = LanguageManager.GetString("TooltipExitFullScreen");
+                _fullscreenBtn.Image = IconService.GetIcon(IconService.IconType.Restore, 20, _isDarkMode ? Color.White : Color.Black);
             }
         }
         _isFullScreen = !_isFullScreen;
@@ -1117,14 +1176,14 @@ public partial class MainForm : Form
         if (_isRightToLeft)
         {
             // 右開き（日本式）: 右から左に読むので、次は左向き、前は右向き
-            _prevBtn.Text = "前 ▶";
-            _nextBtn.Text = "◀ 次";
+            _prevBtn.Text = $"{LanguageManager.GetString("Prev")} ▶";
+            _nextBtn.Text = $"◀ {LanguageManager.GetString("Next")}";
         }
         else
         {
             // 左開き（欧米式）: 左から右に読むので、前は左向き、次は右向き
-            _prevBtn.Text = "◀ 前";
-            _nextBtn.Text = "次 ▶";
+            _prevBtn.Text = $"◀ {LanguageManager.GetString("Prev")}";
+            _nextBtn.Text = $"{LanguageManager.GetString("Next")} ▶";
         }
         
         // ボタンの順序を更新
@@ -1162,7 +1221,7 @@ public partial class MainForm : Form
         var separatorIndex = -1;
         for (int i = 0; i < _toolbar.Items.Count; i++)
         {
-            if (_toolbar.Items[i] == _prevBtn || _toolbar.Items[i] == _nextBtn || _toolbar.Items[i] == _pageLabel)
+            if (_toolbar.Items[i] == _prevBtn || _toolbar.Items[i] == _nextBtn || _toolbar.Items[i] == _pageLabel || _toolbar.Items[i] == _adjustPrevBtn || _toolbar.Items[i] == _adjustNextBtn)
             {
                 if (separatorIndex == -1)
                 {
@@ -1175,21 +1234,29 @@ public partial class MainForm : Form
         _toolbar.Items.Remove(_prevBtn);
         _toolbar.Items.Remove(_nextBtn);
         _toolbar.Items.Remove(_pageLabel);
+        _toolbar.Items.Remove(_adjustPrevBtn);
+        _toolbar.Items.Remove(_adjustNextBtn);
+
+        if (separatorIndex == -1) separatorIndex = 0;
 
         // 読み方向に応じた順序で再追加
         if (_isRightToLeft)
         {
-            // 右開き: 左側に次、右側に前
-            _toolbar.Items.Insert(separatorIndex, _nextBtn);     // 左側に「◀ 次」
+            // 右開き: [次] [ラベル] [前] [◁] [▷]
+            _toolbar.Items.Insert(separatorIndex, _nextBtn);
             _toolbar.Items.Insert(separatorIndex + 1, _pageLabel);
-            _toolbar.Items.Insert(separatorIndex + 2, _prevBtn); // 右側に「前 ▶」
+            _toolbar.Items.Insert(separatorIndex + 2, _prevBtn);
+            _toolbar.Items.Insert(separatorIndex + 3, _adjustPrevBtn);
+            _toolbar.Items.Insert(separatorIndex + 4, _adjustNextBtn);
         }
         else
         {
-            // 左開き: 左側に前、右側に次
-            _toolbar.Items.Insert(separatorIndex, _prevBtn);     // 左側に「◀ 前」
-            _toolbar.Items.Insert(separatorIndex + 1, _pageLabel);
-            _toolbar.Items.Insert(separatorIndex + 2, _nextBtn); // 右側に「次 ▶」
+            // 左開き: [◁] [▷] [前] [ラベル] [次]
+            _toolbar.Items.Insert(separatorIndex, _adjustPrevBtn);
+            _toolbar.Items.Insert(separatorIndex + 1, _adjustNextBtn);
+            _toolbar.Items.Insert(separatorIndex + 2, _prevBtn);
+            _toolbar.Items.Insert(separatorIndex + 3, _pageLabel);
+            _toolbar.Items.Insert(separatorIndex + 4, _nextBtn);
         }
     }
 
@@ -1212,14 +1279,14 @@ public partial class MainForm : Form
             if (_isRightToLeft)
             {
                 // 右開き: ◁が次ページ、▷が前ページ
-                _adjustPrevBtn.ToolTipText = "◁ 1ページ送る（見開き調整用）";
-                _adjustNextBtn.ToolTipText = "▷ 1ページ戻す（見開き調整用）";
+                _adjustPrevBtn.ToolTipText = $"◁ {LanguageManager.GetString("AdjustForward")}";
+                _adjustNextBtn.ToolTipText = $"▷ {LanguageManager.GetString("AdjustBackward")}";
             }
             else
             {
                 // 左開き: ◁が前ページ、▷が次ページ
-                _adjustPrevBtn.ToolTipText = "◁ 1ページ戻す（見開き調整用）";
-                _adjustNextBtn.ToolTipText = "▷ 1ページ送る（見開き調整用）";
+                _adjustPrevBtn.ToolTipText = $"◁ {LanguageManager.GetString("AdjustBackward")}";
+                _adjustNextBtn.ToolTipText = $"▷ {LanguageManager.GetString("AdjustForward")}";
             }
         }
     }
@@ -1251,7 +1318,7 @@ public partial class MainForm : Form
     {
         _isDarkMode = themeBtn.Checked;
         ApplyTheme();
-        themeBtn.Text = _isDarkMode ? "🌙 ダーク" : "☀️ ライト";
+        themeBtn.Text = _isDarkMode ? LanguageManager.GetString("ThemeDark") : LanguageManager.GetString("ThemeLight");
         SaveSettings(); // テーマ設定を保存
     }
 
@@ -1259,8 +1326,29 @@ public partial class MainForm : Form
     {
         _isTopMost = topMostBtn.Checked;
         TopMost = _isTopMost;
-        topMostBtn.Text = _isTopMost ? "📌 最前面" : "📌 通常";
+        topMostBtn.Text = _isTopMost ? LanguageManager.GetString("TopMost") : LanguageManager.GetString("NormalWindow");
         SaveSettings(); // 最前面設定を保存
+    }
+
+    private void ChangeLanguage(Language lang)
+    {
+        if (LanguageManager.CurrentLanguage == lang) return;
+        
+        LanguageManager.CurrentLanguage = lang;
+        
+        // ツールバーを再作成するのが一番確実
+        Controls.Remove(_toolbar);
+        CreateToolbar();
+        ApplyTheme();
+        
+        // ナビゲーションボタンの状態を更新
+        UpdateNavigationButtons();
+        
+        // 表示を更新
+        UpdateDisplay();
+        
+        // 設定を保存
+        SaveSettings();
     }
 
     private void LoadSettings()
@@ -1334,6 +1422,15 @@ public partial class MainForm : Form
                                 Location = new Point(x, y);
                             }
                         }
+                        // 言語設定
+                        if (settings.TryGetValue("language", out var languageObj) && languageObj is System.Text.Json.JsonElement languageElement)
+                        {
+                            var langStr = languageElement.GetString();
+                            if (Enum.TryParse<Language>(langStr, out var lang))
+                            {
+                                LanguageManager.CurrentLanguage = lang;
+                            }
+                        }
                     }
                 }
             }
@@ -1344,6 +1441,7 @@ public partial class MainForm : Form
             _isDarkMode = true;
             _isTopMost = false;
             _isRightToLeft = true;
+            LanguageManager.CurrentLanguage = Language.Japanese;
         }
     }
 
@@ -1369,7 +1467,8 @@ public partial class MainForm : Form
                 ["windowWidth"] = Width,
                 ["windowHeight"] = Height,
                 ["windowX"] = Location.X,
-                ["windowY"] = Location.Y
+                ["windowY"] = Location.Y,
+                ["language"] = LanguageManager.CurrentLanguage.ToString()
             };
 
             var json = System.Text.Json.JsonSerializer.Serialize(settings, new System.Text.Json.JsonSerializerOptions 
@@ -1403,18 +1502,18 @@ public partial class MainForm : Form
             
             if (_toolbar != null)
             {
-                _toolbar.BackColor = Color.FromArgb(50, 50, 50);
-                _toolbar.ForeColor = Color.White;
+                _toolbar.Renderer = new ModernToolStripRenderer(true);
                 
-                // 全てのツールバーアイテムの色を更新
+                // 全てのツールバーアイテムのアイコンのみ更新（背景などはレンダラーが担当）
                 foreach (ToolStripItem item in _toolbar.Items)
                 {
                     item.ForeColor = Color.White;
                     if (item is ToolStripButton btn)
                     {
-                        btn.BackColor = Color.FromArgb(50, 50, 50);
+                        RefreshButtonIcon(btn, Color.White);
                     }
                 }
+            }
                 
                 // 最前面表示ボタンの色も更新
                 if (_topMostBtn != null)
@@ -1422,14 +1521,16 @@ public partial class MainForm : Form
                     _topMostBtn.ForeColor = Color.White;
                     _topMostBtn.BackColor = Color.FromArgb(50, 50, 50);
                 }
-            }
+
+                // スライダーのテーマも更新
+                if (_pageSlider != null) _pageSlider.IsDarkMode = true;
             
             // ファイルメニューの色を更新
             if (_fileContextMenu != null)
             {
                 _fileContextMenu.BackColor = Color.FromArgb(50, 50, 50);
                 _fileContextMenu.ForeColor = Color.White;
-                _fileContextMenu.Renderer = new DarkMenuRenderer(true);
+                _fileContextMenu.Renderer = new ModernToolStripRenderer(true);
                 
                 foreach (ToolStripItem item in _fileContextMenu.Items)
                 {
@@ -1445,37 +1546,29 @@ public partial class MainForm : Form
             ForeColor = Color.Black;
             if (_viewerPanel != null)
                 _viewerPanel.BackColor = Color.FromArgb(250, 250, 250);
-            
+
             if (_toolbar != null)
             {
-                _toolbar.BackColor = Color.FromArgb(230, 230, 230);
-                _toolbar.ForeColor = Color.Black;
-                
-                // 全てのツールバーアイテムの色を更新
+                _toolbar.Renderer = new ModernToolStripRenderer(false);
+
+                // 全てのツールバーアイテムのアイコンを更新
                 foreach (ToolStripItem item in _toolbar.Items)
                 {
                     item.ForeColor = Color.Black;
                     if (item is ToolStripButton btn)
                     {
-                        btn.BackColor = Color.FromArgb(230, 230, 230);
+                        RefreshButtonIcon(btn, Color.Black);
                     }
                 }
-                
-                // 最前面表示ボタンの色も更新
-                if (_topMostBtn != null)
-                {
-                    _topMostBtn.ForeColor = Color.Black;
-                    _topMostBtn.BackColor = Color.FromArgb(230, 230, 230);
-                }
             }
-            
+
             // ファイルメニューの色を更新
             if (_fileContextMenu != null)
             {
                 _fileContextMenu.BackColor = Color.FromArgb(240, 240, 240);
                 _fileContextMenu.ForeColor = Color.Black;
-                _fileContextMenu.Renderer = new DarkMenuRenderer(false);
-                
+                _fileContextMenu.Renderer = new ModernToolStripRenderer(false);
+
                 foreach (ToolStripItem item in _fileContextMenu.Items)
                 {
                     item.ForeColor = Color.Black;
@@ -1483,9 +1576,20 @@ public partial class MainForm : Form
                 }
             }
         }
-        
+
         // 再描画
         Invalidate(true);
+    }
+
+    protected override void SetVisibleCore(bool value)
+    {
+        base.SetVisibleCore(value);
+
+        // Apply title bar theme when window becomes visible
+        if (value && IsHandleCreated)
+        {
+            ApplyTitleBarTheme(_isDarkMode);
+        }
     }
 
     private void AdjustPageForward()
@@ -1536,77 +1640,272 @@ public partial class MainForm : Form
         }
     }
 
-    protected override void SetVisibleCore(bool value)
+    private void RefreshButtonIcon(ToolStripButton btn, Color color)
     {
-        base.SetVisibleCore(value);
+        if (btn == null) return;
+        IconService.IconType? type = null;
         
-        // Apply title bar theme when window becomes visible
-        if (value && IsHandleCreated)
+        string text = btn.Text;
+        if (text == LanguageManager.GetString("MenuFile")) type = IconService.IconType.File;
+        else if (text == LanguageManager.GetString("Help")) type = IconService.IconType.Help;
+        else if (text == LanguageManager.GetString("Language")) type = IconService.IconType.Language;
+        else if (text == LanguageManager.GetString("Fullscreen")) type = IconService.IconType.Fullscreen;
+        else if (text == LanguageManager.GetString("NormalSize")) type = IconService.IconType.Restore;
+        else if (text == LanguageManager.GetString("ViewDual")) type = IconService.IconType.ViewDual;
+        else if (text == LanguageManager.GetString("ViewSingle")) type = IconService.IconType.ViewSingle;
+        else if (text == LanguageManager.GetString("ThemeDark") || text == LanguageManager.GetString("ThemeLight"))
+            type = _isDarkMode ? IconService.IconType.ThemeDark : IconService.IconType.ThemeLight;
+        else if (text == LanguageManager.GetString("TopMost") || text == LanguageManager.GetString("NormalWindow"))
+            type = _isTopMost ? IconService.IconType.TopMostOn : IconService.IconType.TopMostOff;
+
+        if (type.HasValue)
         {
-            ApplyTitleBarTheme(_isDarkMode);
+            btn.Image?.Dispose();
+            btn.Image = IconService.GetIcon(type.Value, 20, color);
         }
     }
 }
 
 /// <summary>
-/// Custom renderer for dark theme context menus
+/// Modern renderer for a professional, flat UI look
 /// </summary>
-public class DarkMenuRenderer : ToolStripProfessionalRenderer
+public class ModernToolStripRenderer : ToolStripProfessionalRenderer
 {
     private readonly bool _isDarkMode;
 
-    public DarkMenuRenderer(bool isDarkMode = true) : base(new DarkColorTable(isDarkMode)) 
+    public ModernToolStripRenderer(bool isDarkMode) : base(new ModernColorTable(isDarkMode))
     {
         _isDarkMode = isDarkMode;
+    }
+
+    protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+    {
+        var bgColor = _isDarkMode ? Color.FromArgb(35, 35, 35) : Color.FromArgb(245, 245, 245);
+        using var brush = new SolidBrush(bgColor);
+        e.Graphics.FillRectangle(brush, e.AffectedBounds);
+
+        // Bottom border (subtle accent)
+        var borderColor = _isDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(210, 210, 210);
+        using var pen = new Pen(borderColor);
+        e.Graphics.DrawLine(pen, e.AffectedBounds.Left, e.AffectedBounds.Bottom - 1, e.AffectedBounds.Right, e.AffectedBounds.Bottom - 1);
+    }
+
+    protected override void OnRenderButtonBackground(ToolStripItemRenderEventArgs e)
+    {
+        if (!e.Item.Selected && !e.Item.Pressed && !(e.Item is ToolStripButton btn && btn.Checked)) return;
+
+        var rect = new Rectangle(Point.Empty, e.Item.Size);
+        rect.Inflate(-2, -2); // Padding for rounded look
+
+        Color backColor;
+        if (e.Item.Pressed)
+            backColor = _isDarkMode ? Color.FromArgb(80, 80, 80) : Color.FromArgb(180, 180, 180);
+        else if (e.Item.Selected)
+            backColor = _isDarkMode ? Color.FromArgb(65, 65, 65) : Color.FromArgb(220, 220, 220);
+        else 
+            backColor = _isDarkMode ? Color.FromArgb(55, 55, 55) : Color.FromArgb(200, 200, 200);
+
+        using var path = GetRoundedRectanglePath(rect, 4);
+        using var brush = new SolidBrush(backColor);
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        e.Graphics.FillPath(brush, path);
     }
 
     protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
     {
-        var bgColor = _isDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(240, 240, 240);
-        var hoverColor = _isDarkMode ? Color.FromArgb(70, 70, 70) : Color.FromArgb(220, 220, 220);
+        if (!e.Item.Selected) return;
 
-        if (e.Item.Selected)
-        {
-            // Highlight color when item is hovered
-            using var brush = new SolidBrush(hoverColor);
-            e.Graphics.FillRectangle(brush, e.Item.ContentRectangle);
-        }
-        else
-        {
-            // Normal background
-            using var brush = new SolidBrush(bgColor);
-            e.Graphics.FillRectangle(brush, e.Item.ContentRectangle);
-        }
+        var rect = new Rectangle(Point.Empty, e.Item.Size);
+        var backColor = _isDarkMode ? Color.FromArgb(70, 70, 70) : Color.FromArgb(220, 220, 220);
+
+        using var brush = new SolidBrush(backColor);
+        e.Graphics.FillRectangle(brush, rect);
     }
 
     protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
     {
-        var separatorColor = _isDarkMode ? Color.FromArgb(70, 70, 70) : Color.FromArgb(200, 200, 200);
-        using var pen = new Pen(separatorColor);
-        var rect = e.Item.ContentRectangle;
-        e.Graphics.DrawLine(pen, rect.Left + 2, rect.Height / 2, rect.Right - 2, rect.Height / 2);
+        var color = _isDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(200, 200, 200);
+        using var pen = new Pen(color);
+        int mid = e.Item.Height / 2;
+        e.Graphics.DrawLine(pen, e.Item.Width / 2, 4, e.Item.Width / 2, e.Item.Height - 4);
+    }
+
+    private GraphicsPath GetRoundedRectanglePath(Rectangle rect, int radius)
+    {
+        var path = new GraphicsPath();
+        float diameter = radius * 2f;
+        path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
+        path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
+        path.AddArc(rect.Right - diameter, rect.Bottom - diameter, diameter, diameter, 0, 90);
+        path.AddArc(rect.X, rect.Bottom - diameter, diameter, diameter, 90, 90);
+        path.CloseAllFigures();
+        return path;
     }
 }
 
-/// <summary>
-/// Dark color table for menu renderer
-/// </summary>
-public class DarkColorTable : ProfessionalColorTable
+public class ModernColorTable : ProfessionalColorTable
 {
     private readonly bool _isDarkMode;
 
-    public DarkColorTable(bool isDarkMode = true)
+    public ModernColorTable(bool isDarkMode)
     {
         _isDarkMode = isDarkMode;
     }
 
-    public override Color MenuBorder => _isDarkMode ? Color.FromArgb(70, 70, 70) : Color.FromArgb(200, 200, 200);
-    public override Color MenuItemBorder => _isDarkMode ? Color.FromArgb(70, 70, 70) : Color.FromArgb(200, 200, 200);
+    public override Color ToolStripBorder => Color.Transparent; // Remove border
+    public override Color MenuItemBorder => Color.Transparent;
     public override Color MenuItemSelected => _isDarkMode ? Color.FromArgb(70, 70, 70) : Color.FromArgb(220, 220, 220);
-    public override Color MenuStripGradientBegin => _isDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(240, 240, 240);
-    public override Color MenuStripGradientEnd => _isDarkMode ? Color.FromArgb(50, 50, 50) : Color.FromArgb(240, 240, 240);
-    public override Color MenuItemSelectedGradientBegin => _isDarkMode ? Color.FromArgb(70, 70, 70) : Color.FromArgb(220, 220, 220);
-    public override Color MenuItemSelectedGradientEnd => _isDarkMode ? Color.FromArgb(70, 70, 70) : Color.FromArgb(220, 220, 220);
-    public override Color MenuItemPressedGradientBegin => _isDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(200, 200, 200);
-    public override Color MenuItemPressedGradientEnd => _isDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(200, 200, 200);
+    public override Color MenuBorder => _isDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(200, 200, 200);
+}
+
+/// <summary>
+/// A modern, custom-drawn slider for page navigation
+/// </summary>
+public class ModernProgressSlider : Control
+{
+    private int _value = 0;
+    private int _minimum = 0;
+    private int _maximum = 100;
+    private bool _isDarkMode = true;
+    private bool _isHovering = false;
+    private bool _isDragging = false;
+
+    public event EventHandler? ValueChanged;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int Value
+    {
+        get => _value;
+        set {
+            var newValue = Math.Clamp(value, _minimum, _maximum);
+            if (_value != newValue) {
+                _value = newValue;
+                Invalidate();
+                ValueChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int Minimum
+    {
+        get => _minimum;
+        set { _minimum = value; Invalidate(); }
+    }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int Maximum
+    {
+        get => _maximum;
+        set { _maximum = Math.Max(_minimum, value); Invalidate(); }
+    }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool IsDarkMode
+    {
+        get => _isDarkMode;
+        set { _isDarkMode = value; Invalidate(); }
+    }
+
+    public ModernProgressSlider()
+    {
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
+        BackColor = Color.Transparent;
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+        var rect = ClientRectangle;
+        float trackHeight = 4f;
+        float trackY = (rect.Height - trackHeight) / 2f;
+        float padding = 8f;
+        float availableWidth = rect.Width - padding * 2;
+
+        // Draw track
+        var trackColor = _isDarkMode ? Color.FromArgb(60, 60, 60) : Color.FromArgb(210, 210, 210);
+        using (var trackBrush = new SolidBrush(trackColor))
+        using (var path = GetRoundedRect(new RectangleF(padding, trackY, availableWidth, trackHeight), trackHeight / 2))
+        {
+            e.Graphics.FillPath(trackBrush, path);
+        }
+
+        // Draw progress
+        float progressWidth = _maximum > _minimum ? (float)(_value - _minimum) / (_maximum - _minimum) * availableWidth : 0;
+        if (progressWidth > 0)
+        {
+            var progressColor = _isDarkMode ? Color.FromArgb(100, 100, 100) : Color.FromArgb(160, 160, 160);
+            using (var progressBrush = new SolidBrush(progressColor))
+            using (var path = GetRoundedRect(new RectangleF(padding, trackY, progressWidth, trackHeight), trackHeight / 2))
+            {
+                e.Graphics.FillPath(progressBrush, path);
+            }
+        }
+
+        // Draw thumb
+        float thumbSize = _isHovering || _isDragging ? 12f : 10f;
+        float thumbX = padding + progressWidth - thumbSize / 2f;
+        float thumbY = (rect.Height - thumbSize) / 2f;
+        
+        var thumbColor = _isDarkMode ? Color.White : Color.FromArgb(40, 40, 40);
+        if (_isDragging) thumbColor = _isDarkMode ? Color.LightGray : Color.Black;
+
+        using (var thumbBrush = new SolidBrush(thumbColor))
+        {
+            e.Graphics.FillEllipse(thumbBrush, thumbX, thumbY, thumbSize, thumbSize);
+        }
+    }
+
+    private GraphicsPath GetRoundedRect(RectangleF rect, float radius)
+    {
+        var path = new GraphicsPath();
+        float d = radius * 2;
+        path.AddArc(rect.X, rect.Y, d, d, 180, 90);
+        path.AddArc(rect.Right - d, rect.Y, d, d, 270, 90);
+        path.AddArc(rect.Right - d, rect.Bottom - d, d, d, 0, 90);
+        path.AddArc(rect.X, rect.Bottom - d, d, d, 90, 90);
+        path.CloseFigure();
+        return path;
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Left)
+        {
+            _isDragging = true;
+            UpdateValueFromMouse(e.X);
+            Capture = true;
+        }
+        base.OnMouseDown(e);
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        bool wasHovering = _isHovering;
+        _isHovering = ClientRectangle.Contains(e.Location);
+        if (wasHovering != _isHovering) Invalidate();
+
+        if (_isDragging)
+        {
+            UpdateValueFromMouse(e.X);
+        }
+        base.OnMouseMove(e);
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        _isDragging = false;
+        Capture = false;
+        Invalidate();
+        base.OnMouseUp(e);
+    }
+
+    private void UpdateValueFromMouse(int mouseX)
+    {
+        float padding = 8f;
+        float availableWidth = Width - padding * 2;
+        float relativeX = Math.Clamp(mouseX - padding, 0, availableWidth);
+        Value = (int)Math.Round(relativeX / availableWidth * (_maximum - _minimum) + _minimum);
+    }
 }
