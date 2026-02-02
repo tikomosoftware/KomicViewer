@@ -82,30 +82,94 @@ public sealed partial class ArchiveReader : IDisposable
 
         var archiveImage = _images[pageIndex];
 
-        using var stream = archiveImage.Entry.OpenEntryStream();
-        using var ms = new MemoryStream();
-        stream.CopyTo(ms);
-        ms.Position = 0;
-
-        var ext = Path.GetExtension(archiveImage.EntryKey).ToLowerInvariant();
-        if (ext == ".webp")
+        // Return a copy of cached image if available
+        if (archiveImage.CachedImage != null)
         {
-            // Decode WebP using SkiaSharp
-            ms.Position = 0;
-            using var skStream = new SKManagedStream(ms);
-            using var codec = SKCodec.Create(skStream);
-            if (codec == null) return null;
-            var info = codec.Info;
-            var bitmap = new SKBitmap(info.Width, info.Height, info.ColorType, info.AlphaType);
-            var result = codec.GetPixels(bitmap.Info, bitmap.GetPixels());
-            if (result != SKCodecResult.Success && result != SKCodecResult.IncompleteInput) return null;
-            using var skImage = SKImage.FromBitmap(bitmap);
-            using var data = skImage.Encode(SKEncodedImageFormat.Png, 100);
-            using var outStream = data.AsStream();
-            return Image.FromStream(outStream);
+            try
+            {
+                // Return a copy so the caller can dispose it without affecting the cache
+                return new Bitmap(archiveImage.CachedImage);
+            }
+            catch
+            {
+                // If the cached image is somehow invalid, clear it and fall through to reload
+                archiveImage.CachedImage = null;
+            }
         }
 
-        return Image.FromStream(ms);
+        try
+        {
+            using var entryStream = archiveImage.Entry.OpenEntryStream();
+            using var ms = new MemoryStream();
+            entryStream.CopyTo(ms);
+            ms.Position = 0;
+
+            if (ms.Length == 0) return null;
+
+            Image? result = null;
+            var ext = Path.GetExtension(archiveImage.EntryKey).ToLowerInvariant();
+
+            if (ext == ".webp")
+            {
+                result = LoadImageWithSkia(ms);
+            }
+            else
+            {
+                try
+                {
+                    // Try standard GDI+ first
+                    using var img = Image.FromStream(ms);
+                    // Create a copy to avoid dependency on the stream
+                    result = new Bitmap(img);
+                }
+                catch (ArgumentException)
+                {
+                    // Fallback to SkiaSharp for problematic JPG/PNG/etc.
+                    ms.Position = 0;
+                    result = LoadImageWithSkia(ms);
+                }
+            }
+
+            if (result != null)
+            {
+                archiveImage.CachedImage = result;
+                return new Bitmap(result);
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading page {pageIndex}: {ex.Message}");
+            return null;
+        }
+    }
+
+    private Image? LoadImageWithSkia(Stream stream)
+    {
+        try
+        {
+            using var skStream = new SKManagedStream(stream);
+            using var codec = SKCodec.Create(skStream);
+            if (codec == null) return null;
+
+            var info = codec.Info;
+            using var bitmap = new SKBitmap(info.Width, info.Height, info.ColorType, info.AlphaType);
+            var res = codec.GetPixels(bitmap.Info, bitmap.GetPixels());
+            if (res != SKCodecResult.Success && res != SKCodecResult.IncompleteInput) return null;
+
+            using var skImage = SKImage.FromBitmap(bitmap);
+            using var data = skImage.Encode(SKEncodedImageFormat.Png, 100);
+            if (data == null) return null;
+
+            using var outStream = data.AsStream();
+            using var tempImg = Image.FromStream(outStream);
+            return new Bitmap(tempImg);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"SkiaSharp decode error: {ex.Message}");
+            return null;
+        }
     }
 
     /// <summary>

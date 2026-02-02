@@ -1,8 +1,8 @@
-﻿# Komic Viewer v1.1
+﻿# Komic Viewer v1.2
 
 📖 軽量で使いやすいコミック・マンガビューアー
 
-![Komic Viewer](https://img.shields.io/badge/Platform-Windows-blue) ![.NET](https://img.shields.io/badge/.NET-9.0-purple) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.1-orange)
+![Komic Viewer](https://img.shields.io/badge/Platform-Windows-blue) ![.NET](https://img.shields.io/badge/.NET-9.0-purple) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.2-orange)
 
 ## 🎯 特徴
 
@@ -164,6 +164,17 @@
 MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照
 
 ## 📋 更新履歴
+
+### v1.2 (2026-02-02)
+**画像デコードの堅牢性向上と安定性の改善**
+- **画像デコードのフォールバック機構**:
+  - 標準のGDI+で読み込めないJPEGファイル等のデコードにSkiaSharpを使用するフォールバック処理を実装。
+  - 「Parameter is not valid」エラーによるクラッシュを大幅に低減。
+- **画像キャッシュとメモリ管理の最適化**:
+  - 画像読み出し速度向上のためのキャッシュ機能を実装。
+  - 画面表示側とキャッシュ側での画像リソースのライフサイクル管理を厳密化し、誤ったリソース破棄によるメモリエラーを修正。
+- **表示処理の効率化**:
+  - 見開き表示時の画像取得・判定ロジックをリファクタリングし、パフォーマンスを改善。
 
 ### v1.1 (2026-01-30)
 **UI/UXの大幅な刷新と操作性の向上**

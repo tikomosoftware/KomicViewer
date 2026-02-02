@@ -714,45 +714,63 @@ public partial class MainForm : Form
             return;
         }
 
-        // Respect user's desired view mode but fall back if PreferSingleOnLandscape prevents dual spread
-        var targetMode = _desiredViewMode ?? _viewerPanel.ViewMode;
-        if (targetMode == ViewMode.DualPage && _viewerPanel.PreferSingleOnLandscape)
+        // Fetch current and potential next page
+        var page1 = _archiveReader.GetPage(_currentPage);
+        var page2 = (_currentPage + 1 < _archiveReader.PageCount) ? _archiveReader.GetPage(_currentPage + 1) : null;
+
+        try
         {
-            var leftPage = _archiveReader.GetPage(_currentPage);
-            var rightPage = _archiveReader.GetPage(_currentPage + 1);
-            try
+            var targetMode = _desiredViewMode ?? _viewerPanel.ViewMode;
+
+            // If in dual page mode, check if we should fall back to single page based on orientation
+            if (targetMode == ViewMode.DualPage && _viewerPanel.PreferSingleOnLandscape)
             {
-                if (leftPage == null || rightPage == null || leftPage.Width > leftPage.Height || rightPage.Width > rightPage.Height)
+                bool isLandscape = false;
+                if (page1 != null && page1.Width > page1.Height) isLandscape = true;
+                if (page2 != null && page2.Width > page2.Height) isLandscape = true;
+                
+                if (isLandscape || page1 == null || page2 == null)
                 {
                     targetMode = ViewMode.SinglePage;
                 }
             }
-            finally
+
+            // Apply targetMode to viewer panel
+            if (_viewerPanel.ViewMode != targetMode)
+                _viewerPanel.ViewMode = targetMode;
+
+            if (_viewerPanel.ViewMode == ViewMode.SinglePage)
             {
-                leftPage?.Dispose();
-                rightPage?.Dispose();
+                // In single page mode, only use page1 (page2 will be disposed in finally)
+                _viewerPanel.SetPages(page1);
+            }
+            else
+            {
+                // In dual page mode, use both
+                _viewerPanel.SetPages(page1, page2);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateDisplay error: {ex.Message}");
+        }
+        finally
+        {
+            // Note: ComicViewerPanel.SetPages handles disposal of its previous images.
+            // But we fetched page1/page2 here. If we didn't pass them to SetPages, 
+            // or if SetPages makes its own copies (it doesn't currently), we might need to dispose.
+            // However, our new ArchiveReader returns clones, so we MUST ensure these clones are either:
+            // 1. Passed to SetPages (which now disposes old ones).
+            // 2. Disposed here if NOT used.
+            
+            if (_viewerPanel.ViewMode == ViewMode.SinglePage)
+            {
+                page2?.Dispose(); // page2 wasn't used
             }
         }
 
-        // Apply targetMode to viewer panel
-        if (_viewerPanel.ViewMode != targetMode)
-            _viewerPanel.ViewMode = targetMode;
-
-        if (_viewerPanel.ViewMode == ViewMode.SinglePage)
-        {
-            var page = _archiveReader.GetPage(_currentPage);
-            _viewerPanel.SetPages(page);
-        }
-        else
-        {
-            // Dual page mode
-            var currentPage = _archiveReader.GetPage(_currentPage);
-            var nextPage = _archiveReader.GetPage(_currentPage + 1);
-            _viewerPanel.SetPages(currentPage, nextPage);
-        }
-
         UpdateTitle();
-        UpdateSlider(); // スライダーも更新
+        UpdateSlider();
     }
 
     private void UpdateTitle()

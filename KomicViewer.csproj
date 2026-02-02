@@ -13,9 +13,9 @@
     <PublishSingleFile>false</PublishSingleFile>
     
     <!-- Version Information -->
-    <AssemblyVersion>1.1.0.0</AssemblyVersion>
-    <FileVersion>1.1.0.0</FileVersion>
-    <Version>1.1</Version>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <FileVersion>1.2.0.0</FileVersion>
+    <Version>1.2</Version>
     <AssemblyTitle>Komic Viewer</AssemblyTitle>
     <AssemblyDescription>軽量で使いやすいコミック・マンガビューアー</AssemblyDescription>
     <AssemblyCompany>tikomo software</AssemblyCompany>

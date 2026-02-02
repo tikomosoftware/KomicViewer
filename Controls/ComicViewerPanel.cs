@@ -132,20 +132,26 @@ public sealed class ComicViewerPanel : Panel
     {
         lock (_pageLock)
         {
-            // 古い画像を一時的に保持
+            // 古い画像を保持
             var oldLeftPage = _leftPage;
             var oldRightPage = _rightPage;
             
             // 新しい画像を設定
-            _leftPage = currentPage;  // 実際には現在のページ
-            _rightPage = nextPage;    // 実際には次のページ
+            _leftPage = currentPage;
+            _rightPage = nextPage;
             
             // 再描画を要求
             Invalidate();
             
-            // 古い画像を破棄（新しい画像設定後）
-            oldLeftPage?.Dispose();
-            oldRightPage?.Dispose();
+            // 画像が変更された場合のみ古い画像を破棄
+            if (oldLeftPage != null && oldLeftPage != currentPage && oldLeftPage != nextPage)
+            {
+                oldLeftPage.Dispose();
+            }
+            if (oldRightPage != null && oldRightPage != currentPage && oldRightPage != nextPage)
+            {
+                oldRightPage.Dispose();
+            }
         }
     }
 
