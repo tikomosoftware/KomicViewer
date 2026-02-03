@@ -3,7 +3,7 @@
 ; Non-commercial use only
 
 #define MyAppName "KomicViewer"
-#define MyAppVersion "1.1"
+#define MyAppVersion "1.2"
 #define MyAppPublisher "tikomo software"
 #define MyAppExeName "KomicViewer.exe"
 
