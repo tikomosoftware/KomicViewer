@@ -159,9 +159,10 @@
 - **画像形式を確認**: JPEG, PNG, GIF, BMP, WebP のみ対応
 - **ファイル名**: 日本語ファイル名でも対応
 
-## 📝 ライセンス
+## 📞 サポート
 
-MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照
+- **E-Mail**: tikomo@gmail.com
+- **HP**: https://tikomosoftware.github.io
 
 ## 📋 更新履歴
 
@@ -272,18 +273,6 @@ MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照
 - フルスクリーン対応
 - 最前面表示オプション
 
-## 🤝 貢献・フィードバック
-
-- **バグ報告**: [Issues](../../issues) でお知らせください
-- **機能要望**: [Issues](../../issues) で提案をお待ちしています
-- **プルリクエスト**: 歓迎します！
-
-## 📞 サポート
-
-- **GitHub Issues**: [こちら](../../issues)
-- **使い方**: アプリ内の「❓ 使い方」ボタンをクリック
-
----
 
 **Komic Viewer** - シンプルで快適なコミック読書体験を提供します 📚✨
 
