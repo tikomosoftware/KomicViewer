@@ -17,6 +17,8 @@ $TempFrameworkDir = "$DistDir\temp_framework"
 $TempStandaloneDir = "$DistDir\temp_standalone"
 $FrameworkZipFile = "$DistDir\KomicViewer-v$Version-framework-dependent-release.zip"
 $StandaloneZipFile = "$DistDir\KomicViewer-v$Version-standalone-release.zip"
+$VectorZipFile = "$DistDir\KomicViewer-v$Version-vector.zip"
+$TempVectorDir = "$DistDir\temp_vector"
 
 # ビルド開始時刻を記録
 $BuildStartTime = Get-Date
@@ -110,6 +112,38 @@ catch {
     Write-Host "  ✗ Self-contained build failed: $($_.Exception.Message)" -ForegroundColor Red
 }
 
+# ========================================
+# Vector用パッケージ（単一EXE + Vector用README）
+# ========================================
+Write-Host ""
+Write-Host "Building Vector Package..." -ForegroundColor Yellow
+$vectorBuildSuccess = $false
+try {
+    if ($standaloneBuildSuccess) {
+        New-Item -ItemType Directory -Path $TempVectorDir -Force | Out-Null
+        
+        # 自己完結型フォルダからEXEのみをコピー（README.mdなどは除外される可能性があるため、必要なものだけ選別）
+        # もしくは、TempStandaloneDir をそのままコピーしてREADMEを差し替える
+        Copy-Item "$TempStandaloneDir/*" $TempVectorDir -Recurse
+        
+        # README.mdを削除してREADME_VECTOR.mdをREADME.mdとして配置（VectorではREADME.mdが標準的なため）
+        # または、README_VECTOR.mdをそのまま入れる
+        if (Test-Path "$TempVectorDir/README.md") { Remove-Item "$TempVectorDir/README.md" -Force }
+        Copy-Item "README_VECTOR.md" "$TempVectorDir/README.md"
+        
+        # Create ZIP
+        Compress-Archive -Path "$TempVectorDir/*" -DestinationPath $VectorZipFile -Force
+        Write-Host "  ✓ Vector package completed" -ForegroundColor Green
+        $vectorBuildSuccess = $true
+    }
+    else {
+        throw "Standalone build failed, skipping Vector package."
+    }
+}
+catch {
+    Write-Host "  ✗ Vector package failed: $($_.Exception.Message)" -ForegroundColor Red
+}
+
 # 両方のビルドが失敗した場合はエラー終了
 if (-not $frameworkBuildSuccess -and -not $standaloneBuildSuccess) {
     Write-Host "Both builds failed!" -ForegroundColor Red
@@ -124,6 +158,9 @@ if (Test-Path $TempFrameworkDir) {
 }
 if (Test-Path $TempStandaloneDir) {
     Remove-Item -Path $TempStandaloneDir -Recurse -Force
+}
+if (Test-Path $TempVectorDir) {
+    Remove-Item -Path $TempVectorDir -Recurse -Force
 }
 Write-Host "Cleanup completed" -ForegroundColor Green
 Write-Host ""
@@ -159,6 +196,17 @@ if ($standaloneBuildSuccess -and (Test-Path $StandaloneZipFile)) {
     Write-Host "   Size: $([math]::Round($standaloneZipInfo.Length / 1MB, 2)) MB" -ForegroundColor White
     Write-Host "   SHA256: $($standaloneZipHash.Hash)" -ForegroundColor Gray
     Write-Host "   ✓ No .NET Runtime installation required" -ForegroundColor Green
+    Write-Host ""
+}
+
+# Vectorパッケージの情報
+if ($vectorBuildSuccess -and (Test-Path $VectorZipFile)) {
+    $vectorZipInfo = Get-Item $VectorZipFile
+    
+    Write-Host "📦 Vector Package (Single EXE + Vector README):" -ForegroundColor Cyan
+    Write-Host "   File: $($vectorZipInfo.Name)" -ForegroundColor White
+    Write-Host "   Size: $([math]::Round($vectorZipInfo.Length / 1MB, 2)) MB" -ForegroundColor White
+    Write-Host "   ✓ Ready for Vector distribution" -ForegroundColor Green
     Write-Host ""
 }
 

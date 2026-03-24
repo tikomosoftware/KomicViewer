@@ -1,0 +1,79 @@
+name: Android Release Build
+
+on:
+  push:
+    tags:
+      - 'android-v*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.2'
+        channel: 'stable'
+
+    - name: Extract version from tag
+      id: get_version
+      run: |
+        TAG="${{ github.ref_name }}"
+        VERSION="${TAG#android-v}"
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Decode keystore
+      run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > komic_viewer_flutter/android/upload-keystore.jks
+
+    - name: Create key.properties
+      run: |
+        cat > komic_viewer_flutter/android/key.properties << EOF
+        storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+        keyPassword=${{ secrets.KEY_PASSWORD }}
+        keyAlias=upload
+        storeFile=../upload-keystore.jks
+        EOF
+
+    - name: Install dependencies
+      working-directory: komic_viewer_flutter
+      run: flutter pub get
+
+    - name: Build APK
+      working-directory: komic_viewer_flutter
+      run: flutter build apk --release
+
+    - name: Rename APK
+      run: |
+        mv komic_viewer_flutter/build/app/outputs/apk/release/app-release.apk \
+           komic_viewer_flutter/build/app/outputs/apk/release/KomicViewer-v${{ steps.get_version.outputs.VERSION }}.apk
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: komic_viewer_flutter/build/app/outputs/apk/release/KomicViewer-v${{ steps.get_version.outputs.VERSION }}.apk
+        body: |
+          ## KomicViewer Android v${{ steps.get_version.outputs.VERSION }}
+
+          ### インストール方法
+          1. APKファイルをダウンロード
+          2. Androidの設定で「提供元不明のアプリ」を許可
+          3. APKファイルを開いてインストール
+
+          ### 変更内容
+          リリースノートをここに記載してください。
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
