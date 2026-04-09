@@ -1234,13 +1234,19 @@ public partial class MainForm : Form
 
     private void UpdateNavigationButtonOrder()
     {
-        if (_toolbar == null || _prevBtn == null || _nextBtn == null || _pageLabel == null) return;
+        var toolbar = _toolbar;
+        var prevBtn = _prevBtn;
+        var nextBtn = _nextBtn;
+        var pageLabel = _pageLabel;
+
+        if (toolbar == null || prevBtn == null || nextBtn == null || pageLabel == null) return;
 
         // 現在のナビゲーションボタンを一時的に削除
         var separatorIndex = -1;
-        for (int i = 0; i < _toolbar.Items.Count; i++)
+        for (int i = 0; i < toolbar.Items.Count; i++)
         {
-            if (_toolbar.Items[i] == _prevBtn || _toolbar.Items[i] == _nextBtn || _toolbar.Items[i] == _pageLabel || _toolbar.Items[i] == _adjustPrevBtn || _toolbar.Items[i] == _adjustNextBtn)
+            var item = toolbar.Items[i];
+            if (item == prevBtn || item == nextBtn || item == pageLabel || item == _adjustPrevBtn || item == _adjustNextBtn)
             {
                 if (separatorIndex == -1)
                 {
@@ -1250,11 +1256,11 @@ public partial class MainForm : Form
         }
 
         // ナビゲーション要素を削除
-        _toolbar.Items.Remove(_prevBtn);
-        _toolbar.Items.Remove(_nextBtn);
-        _toolbar.Items.Remove(_pageLabel);
-        _toolbar.Items.Remove(_adjustPrevBtn);
-        _toolbar.Items.Remove(_adjustNextBtn);
+        toolbar.Items.Remove(prevBtn);
+        toolbar.Items.Remove(nextBtn);
+        toolbar.Items.Remove(pageLabel);
+        if (_adjustPrevBtn != null) toolbar.Items.Remove(_adjustPrevBtn);
+        if (_adjustNextBtn != null) toolbar.Items.Remove(_adjustNextBtn);
 
         if (separatorIndex == -1) separatorIndex = 0;
 
@@ -1262,20 +1268,20 @@ public partial class MainForm : Form
         if (_isRightToLeft)
         {
             // 右開き: [次] [ラベル] [前] [◁] [▷]
-            _toolbar.Items.Insert(separatorIndex, _nextBtn);
-            _toolbar.Items.Insert(separatorIndex + 1, _pageLabel);
-            _toolbar.Items.Insert(separatorIndex + 2, _prevBtn);
-            _toolbar.Items.Insert(separatorIndex + 3, _adjustPrevBtn);
-            _toolbar.Items.Insert(separatorIndex + 4, _adjustNextBtn);
+            toolbar.Items.Insert(separatorIndex, nextBtn);
+            toolbar.Items.Insert(separatorIndex + 1, pageLabel);
+            toolbar.Items.Insert(separatorIndex + 2, prevBtn);
+            if (_adjustPrevBtn != null) toolbar.Items.Insert(separatorIndex + 3, _adjustPrevBtn);
+            if (_adjustNextBtn != null) toolbar.Items.Insert(separatorIndex + 4, _adjustNextBtn);
         }
         else
         {
             // 左開き: [◁] [▷] [前] [ラベル] [次]
-            _toolbar.Items.Insert(separatorIndex, _adjustPrevBtn);
-            _toolbar.Items.Insert(separatorIndex + 1, _adjustNextBtn);
-            _toolbar.Items.Insert(separatorIndex + 2, _prevBtn);
-            _toolbar.Items.Insert(separatorIndex + 3, _pageLabel);
-            _toolbar.Items.Insert(separatorIndex + 4, _nextBtn);
+            if (_adjustPrevBtn != null) toolbar.Items.Insert(separatorIndex, _adjustPrevBtn);
+            if (_adjustNextBtn != null) toolbar.Items.Insert(separatorIndex + 1, _adjustNextBtn);
+            toolbar.Items.Insert(separatorIndex + 2, prevBtn);
+            toolbar.Items.Insert(separatorIndex + 3, pageLabel);
+            toolbar.Items.Insert(separatorIndex + 4, nextBtn);
         }
     }
 
@@ -1664,7 +1670,8 @@ public partial class MainForm : Form
         if (btn == null) return;
         IconService.IconType? type = null;
         
-        string text = btn.Text;
+        string? text = btn.Text;
+        if (text == null) return;
         if (text == LanguageManager.GetString("MenuFile")) type = IconService.IconType.File;
         else if (text == LanguageManager.GetString("Help")) type = IconService.IconType.Help;
         else if (text == LanguageManager.GetString("Language")) type = IconService.IconType.Language;

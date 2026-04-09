@@ -2,7 +2,7 @@
 # 2つのビルドを作成: フレームワーク依存版（軽量）と自己完結型版（単一EXE）
 
 param(
-    [string]$Version = "1.2",
+    [string]$Version = "1.3",
     [switch]$Clean
 )
 

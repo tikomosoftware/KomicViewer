@@ -2,6 +2,8 @@ using SharpCompress.Archives;
 using SharpCompress.Common;
 using System.Text.RegularExpressions;
 using SkiaSharp;
+using LibHeifSharp;
+using System.Runtime.InteropServices;
 
 namespace KomicViewer.Services;
 
@@ -109,7 +111,11 @@ public sealed partial class ArchiveReader : IDisposable
             Image? result = null;
             var ext = Path.GetExtension(archiveImage.EntryKey).ToLowerInvariant();
 
-            if (ext == ".webp")
+            if (ext == ".avif")
+            {
+                result = LoadAvifWithLibHeif(ms);
+            }
+            else if (ext == ".webp")
             {
                 result = LoadImageWithSkia(ms);
             }
@@ -144,24 +150,119 @@ public sealed partial class ArchiveReader : IDisposable
         }
     }
 
+    private Image? LoadAvifWithLibHeif(Stream stream)
+    {
+        if (!Program.IsHeifAvailable)
+            return LoadImageWithSkia(stream);
+
+        try
+        {
+            var bytes = (stream as MemoryStream)?.ToArray() ?? Array.Empty<byte>();
+            if (bytes.Length == 0)
+            {
+                using var ms = new MemoryStream();
+                stream.CopyTo(ms);
+                bytes = ms.ToArray();
+            }
+
+            if (bytes.Length == 0) return null;
+
+            using var context = new HeifContext(bytes);
+            using var imageHandle = context.GetPrimaryImageHandle();
+            using var heifImage = imageHandle.Decode(HeifColorspace.Rgb, HeifChroma.InterleavedRgba32);
+            
+            var plane = heifImage.GetPlane(HeifChannel.Interleaved);
+            var info = new SKImageInfo(heifImage.Width, heifImage.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+            
+            using var bitmap = new SKBitmap(info);
+            int srcStride = plane.Stride;
+            int dstStride = bitmap.RowBytes;
+            int height = heifImage.Height;
+            int copyWidth = Math.Min(srcStride, dstStride);
+            
+            IntPtr dstPtr = bitmap.GetPixels();
+            if (srcStride == dstStride)
+            {
+                int totalSize = srcStride * height;
+                byte[] buffer = new byte[totalSize];
+                Marshal.Copy(plane.Scan0, buffer, 0, totalSize);
+                Marshal.Copy(buffer, 0, dstPtr, totalSize);
+            }
+            else
+            {
+                for (int row = 0; row < height; row++)
+                {
+                    IntPtr srcRow = IntPtr.Add(plane.Scan0, row * srcStride);
+                    IntPtr dstRow = IntPtr.Add(dstPtr, row * dstStride);
+                    byte[] rowBuffer = new byte[copyWidth];
+                    Marshal.Copy(srcRow, rowBuffer, 0, copyWidth);
+                    Marshal.Copy(rowBuffer, 0, dstRow, copyWidth);
+                }
+            }
+
+            using var skImage = SKImage.FromBitmap(bitmap);
+            using var pngData = skImage.Encode(SKEncodedImageFormat.Png, 100);
+            if (pngData == null) return null;
+
+            using var outStream = pngData.AsStream();
+            using var tempImg = Image.FromStream(outStream);
+            return new Bitmap(tempImg);
+        }
+        catch (DllNotFoundException)
+        {
+            stream.Position = 0;
+            return LoadImageWithSkia(stream);
+        }
+        catch (BadImageFormatException)
+        {
+            stream.Position = 0;
+            return LoadImageWithSkia(stream);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AVIF Decode] ERROR: {ex.Message}");
+            stream.Position = 0;
+            return LoadImageWithSkia(stream);
+        }
+    }
+
     private Image? LoadImageWithSkia(Stream stream)
     {
         try
         {
-            using var skStream = new SKManagedStream(stream);
-            using var codec = SKCodec.Create(skStream);
-            if (codec == null) return null;
+            // Use SKData as it handles stream lifecycle and buffering better for some codecs
+            using var data = SKData.Create(stream);
+            if (data == null)
+            {
+                System.Diagnostics.Debug.WriteLine("SkiaSharp error: Failed to create SKData from stream");
+                return null;
+            }
+
+            using var codec = SKCodec.Create(data);
+            if (codec == null)
+            {
+                System.Diagnostics.Debug.WriteLine("SkiaSharp error: SKCodec.Create returned null (Codec not found or invalid data)");
+                return null;
+            }
 
             var info = codec.Info;
             using var bitmap = new SKBitmap(info.Width, info.Height, info.ColorType, info.AlphaType);
             var res = codec.GetPixels(bitmap.Info, bitmap.GetPixels());
-            if (res != SKCodecResult.Success && res != SKCodecResult.IncompleteInput) return null;
+            if (res != SKCodecResult.Success && res != SKCodecResult.IncompleteInput)
+            {
+                System.Diagnostics.Debug.WriteLine($"SkiaSharp error: GetPixels failed with {res}");
+                return null;
+            }
 
             using var skImage = SKImage.FromBitmap(bitmap);
-            using var data = skImage.Encode(SKEncodedImageFormat.Png, 100);
-            if (data == null) return null;
+            using var pngData = skImage.Encode(SKEncodedImageFormat.Png, 100);
+            if (pngData == null)
+            {
+                System.Diagnostics.Debug.WriteLine("SkiaSharp error: Failed to encode image to PNG for GDI+ conversion");
+                return null;
+            }
 
-            using var outStream = data.AsStream();
+            using var outStream = pngData.AsStream();
             using var tempImg = Image.FromStream(outStream);
             return new Bitmap(tempImg);
         }
@@ -191,7 +292,7 @@ public sealed partial class ArchiveReader : IDisposable
     private static bool IsImageFile(string fileName)
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
-        return ext is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp";
+        return ext is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp" or ".avif";
     }
 
     /// <summary>

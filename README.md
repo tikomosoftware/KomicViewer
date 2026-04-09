@@ -1,8 +1,8 @@
-﻿# Komic Viewer v1.2
+# Komic Viewer v1.3
 
 📖 軽量で使いやすいコミック・マンガビューアー
 
-![Komic Viewer](https://img.shields.io/badge/Platform-Windows-blue) ![.NET](https://img.shields.io/badge/.NET-9.0-purple) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.2-orange)
+![Komic Viewer](https://img.shields.io/badge/Platform-Windows-blue) ![.NET](https://img.shields.io/badge/.NET-9.0-purple) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.3-orange)
 
 ## 🎯 特徴
 
@@ -124,6 +124,7 @@
 - GIF (`.gif`)
 - BMP (`.bmp`)
 - WebP (`.webp`)
+- AVIF (`.avif`)
 
 ## ⚙️ 高度な機能
 
@@ -156,7 +157,7 @@
 - **パスワード保護**: 現在未対応
 
 ### 画像が表示されない
-- **画像形式を確認**: JPEG, PNG, GIF, BMP, WebP のみ対応
+- **画像形式を確認**: JPEG, PNG, GIF, BMP, WebP, AVIF のみ対応
 - **ファイル名**: 日本語ファイル名でも対応
 
 ## 📞 サポート
@@ -165,6 +166,12 @@
 - **HP**: https://tikomosoftware.github.io
 
 ## 📋 更新履歴
+
+### v1.3 (2026-04-09)
+**最新画像フォーマットへの対応**
+- **AVIF形式のサポート**:
+  - 次世代画像形式 AVIF (.avif) の表示に対応しました。
+  - SkiaSharpによる高速なデコードをサポート。
 
 ### v1.2 (2026-02-02)
 **画像デコードの堅牢性向上と安定性の改善**

@@ -164,7 +164,7 @@ Lightweight and easy-to-use comic/manga viewer
 
 [Supported Formats]
 - ZIP (.zip, .cbz), RAR (.rar, .cbr)
-- Images: JPEG, PNG, GIF, BMP, WebP
+- Images: JPEG, PNG, GIF, BMP, WebP, AVIF
 
 ---
 (C) 2026 tikomo software";
@@ -219,7 +219,7 @@ Lightweight and easy-to-use comic/manga viewer
 【対応ファイル形式】
 ・ZIP (.zip, .cbz)
 ・RAR (.rar, .cbr)
-・対応画像: JPEG, PNG, GIF, BMP, WebP
+・対応画像: JPEG, PNG, GIF, BMP, WebP, AVIF
 
 ---
 (C) 2026 tikomo software";

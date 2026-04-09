@@ -31,3 +31,6 @@ settings.json
 
 # Kiro IDE
 .kiro/
+
+# Flutter project (not part of this repo)
+komic_viewer_flutter/
